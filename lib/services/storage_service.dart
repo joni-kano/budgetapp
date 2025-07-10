@@ -36,7 +36,7 @@ class StorageService {
   Future<void> saveData({
     required double monthlyIncome,
     required List<PendingPayment> pendingPayments,
-    required List<Transaction> transactions,
+    required List<Transaction> transactions, required double currentBalance,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     

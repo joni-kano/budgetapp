@@ -8,7 +8,9 @@ import '../utils/helpers.dart';
 
 class BudgetTab extends StatefulWidget {
   final double monthlyIncome;
+  final double currentBalance;
   final Function(double) onIncomeUpdate;
+  final Function(double) onAddMoney;
   final Function(Transaction) onAddTransaction;
   final Function(PendingPayment) onAddPayment;
   
@@ -16,7 +18,9 @@ class BudgetTab extends StatefulWidget {
   const BudgetTab({
     Key? key,
     required this.monthlyIncome,
+    required this.currentBalance,
     required this.onIncomeUpdate,
+    required this.onAddMoney,
     required this.onAddTransaction,
     required this.onAddPayment,
   }) : super(key: key);
@@ -272,6 +276,7 @@ class _BudgetTabState extends State<BudgetTab> {
               ],
             ),
             SizedBox(height: 16),
+            // First row of buttons
             Row(
               children: [
                 Expanded(
@@ -307,9 +312,92 @@ class _BudgetTabState extends State<BudgetTab> {
                 ),
               ],
             ),
+            SizedBox(height: 12),
+            // Second row - Add Money button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: Icon(Icons.add),
+                label: Text('Add Money'),
+                onPressed: () => _showAddMoneyDialog(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[400],
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  void _showAddMoneyDialog() {
+    TextEditingController amountController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add Money'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                ],
+                decoration: InputDecoration(
+                  labelText: 'Amount to Add',
+                  prefixText: 'KES ',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'This amount will be distributed according to your budget allocation:',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              SizedBox(height: 8),
+              if (widget.monthlyIncome > 0) ...[
+                Text('• ${AppConstants.tithePercentage.toInt()}% to Tithe/Charitable Giving'),
+                Text('• ${AppConstants.rentTransportPercentage.toInt()}% to Rent & Transport'),
+                Text('• ${AppConstants.investmentPercentage.toInt()}% to Investment & Savings'),
+                Text('• ${AppConstants.needsWantsPercentage.toInt()}% to Needs, Wants & Contributions'),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (amountController.text.isNotEmpty) {
+                  double amount = double.parse(amountController.text);
+                  widget.onAddMoney(amount);
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Money added successfully')),
+                  );
+                }
+              },
+              child: Text('Add'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -416,76 +504,104 @@ class _BudgetTabState extends State<BudgetTab> {
     TextEditingController nameController = TextEditingController();
     TextEditingController amountController = TextEditingController();
     TextEditingController dateController = TextEditingController();
+    String selectedCategory = AppConstants.categories[1]; // Default to Rent & Transport
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Add Pending Payment'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'Payment Name',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              SizedBox(height: 12),
-              TextField(
-                controller: amountController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                ],
-                decoration: InputDecoration(
-                  labelText: 'Amount',
-                  prefixText: 'KES ',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              SizedBox(height: 12),
-              TextField(
-                controller: dateController,
-                decoration: InputDecoration(
-                  labelText: 'Due Date (Optional)',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  hintText: 'e.g., 15th Jan 2025',
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (nameController.text.isNotEmpty &&
-                    amountController.text.isNotEmpty) {
-                  widget.onAddPayment(
-                    PendingPayment(
-                      name: nameController.text,
-                      amount: double.parse(amountController.text),
-                      dueDate: dateController.text,
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Add Pending Payment'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Payment Name',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                  );
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Payment added successfully')),
-                  );
-                }
-              },
-              child: Text('Add'),
-            ),
-          ],
+                  ),
+                  SizedBox(height: 12),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                    ],
+                    decoration: InputDecoration(
+                      labelText: 'Amount',
+                      prefixText: 'KES ',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedCategory,
+                    decoration: InputDecoration(
+                      labelText: 'Category',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    items: AppConstants.categories.map((category) {
+                      return DropdownMenuItem(
+                        value: category,
+                        child: Text(category),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCategory = value!;
+                      });
+                    },
+                  ),
+                  SizedBox(height: 12),
+                  TextField(
+                    controller: dateController,
+                    decoration: InputDecoration(
+                      labelText: 'Due Date (Optional)',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      hintText: 'e.g., 15th Jan 2025',
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (nameController.text.isNotEmpty &&
+                        amountController.text.isNotEmpty) {
+                      widget.onAddPayment(
+                        PendingPayment(
+                          name: nameController.text,
+                          amount: double.parse(amountController.text),
+                          dueDate: dateController.text,
+                          category: selectedCategory,
+                        ),
+                      );
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Payment added successfully')),
+                      );
+                    }
+                  },
+                  child: Text('Add'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
