@@ -1,0 +1,25 @@
+budget_tracker/
+├── android/
+├── ios/
+├── lib/
+│   ├── models/
+│   │   ├── pending_payment.dart
+│   │   └── transaction.dart
+│   ├── screens/
+│   │   ├── budget_tab.dart
+│   │   ├── payments_tab.dart
+│   │   └── analysis_tab.dart
+│   ├── services/
+│   │   └── storage_service.dart
+│   ├── utils/
+│   │   ├── constants.dart
+│   │   └── helpers.dart
+│   ├── widgets/
+│   │   ├── allocation_item.dart
+│   │   ├── pending_payment_item.dart
+│   │   └── transaction_item.dart
+│   └── main.dart
+├── assets/
+│   └── icons/
+├── pubspec.yaml
+└── README.md
